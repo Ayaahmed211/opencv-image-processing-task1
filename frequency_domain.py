@@ -22,11 +22,22 @@ def read_image(file_path, max_size=512):
         
     return gray, True
 
-def _create_distance_matrix(rows, cols):
-    """Helper function to create a matrix of distances from the center."""
-    crow, ccol = rows // 2, cols // 2
+def _create_gaussian_mask(rows, cols, D0, filter_type):
+    """Helper function to create a vectorized Gaussian filter mask instantly."""
+    crow, ccol = rows / 2, cols / 2
     y, x = np.ogrid[-crow:rows-crow, -ccol:cols-ccol]
-    return np.sqrt(x**2 + y**2)
+    
+    # Calculate distance squared from the center
+    dist_sq = x**2 + y**2
+    
+    # Gaussian Low-Pass formula
+    mask = np.exp(-dist_sq / (2 * D0**2))
+    
+    # If High-Pass, invert the mask
+    if filter_type == 'HPF':
+        mask = 1 - mask
+        
+    return mask
 
 def get_magnitude_spectrum(image):
     """Computes the magnitude spectrum of an image for visualization."""
@@ -40,28 +51,24 @@ def get_magnitude_spectrum(image):
     magnitude_display = cv2.normalize(magnitude_spectrum, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8U)
     return cv2.cvtColor(magnitude_display, cv2.COLOR_GRAY2BGR)
 
-def apply_filter(image, filter_type, radius):
+def apply_filter(image, filter_type, D0):
     """
-    Applies an Ideal Low-Pass (LPF) or High-Pass (HPF) filter.
+    Applies a Gaussian Low-Pass (LPF) or High-Pass (HPF) filter in the frequency domain.
     Returns the display-ready image and the raw float data for hybrid generation.
     """
     rows, cols = image.shape
     f = np.fft.fft2(image)
     fshift = np.fft.fftshift(f)
     
-    # Create the filter mask
-    d_matrix = _create_distance_matrix(rows, cols)
-    mask = np.zeros((rows, cols), np.uint8)
-    
-    if filter_type == 'LPF':
-        mask[d_matrix <= radius] = 1
-    elif filter_type == 'HPF':
-        mask[d_matrix > radius] = 1
+    # Create the Gaussian filter mask
+    mask = _create_gaussian_mask(rows, cols, D0, filter_type)
         
     # Apply mask and inverse FFT
     fshift_filtered = fshift * mask
     f_ishift = np.fft.ifftshift(fshift_filtered)
     img_back = np.fft.ifft2(f_ishift)
+    
+    # Get the magnitude
     img_back = np.abs(img_back)
     
     # Normalize for display
@@ -80,11 +87,8 @@ def generate_hybrid(img1_float, img2_float):
     if (h1, w1) != (h2, w2):
         img2_float = cv2.resize(img2_float, (w1, h1), interpolation=cv2.INTER_CUBIC)
         
-    # Combine the low frequencies and high frequencies
-    hybrid = img1_float + img2_float
-    
-    # Clip negative values before normalization to prevent inversion artifacts
-    hybrid = np.clip(hybrid, 0, None)
+    # Combine the magnitudes of the low frequencies and high frequencies
+    hybrid = np.abs(img1_float) + np.abs(img2_float)
     
     # Normalize the final hybrid image to 0-255 for display
     hybrid_display = cv2.normalize(hybrid, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8U)

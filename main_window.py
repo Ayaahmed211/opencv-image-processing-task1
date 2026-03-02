@@ -309,15 +309,17 @@ class MainWindow(QMainWindow):
         if img_num == 1:
             img = self.freq_img1_orig
             f_type = self.freq_tab.combo_filter1.currentText()
-            radius = self.freq_tab.spin_radius1.value()
-            display_img, float_data = frequency_domain.apply_filter(img, f_type, radius)
+            # UPDATED: spin_radius1 -> spin_d0_1
+            d0 = self.freq_tab.spin_d0_1.value() 
+            display_img, float_data = frequency_domain.apply_filter(img, f_type, d0)
             self.freq_img1_float = float_data
             self.freq_tab.viewer_f1_filt.setImage(display_img)
         else:
             img = self.freq_img2_orig
             f_type = self.freq_tab.combo_filter2.currentText()
-            radius = self.freq_tab.spin_radius2.value()
-            display_img, float_data = frequency_domain.apply_filter(img, f_type, radius)
+            # UPDATED: spin_radius2 -> spin_d0_2
+            d0 = self.freq_tab.spin_d0_2.value() 
+            display_img, float_data = frequency_domain.apply_filter(img, f_type, d0)
             self.freq_img2_float = float_data
             self.freq_tab.viewer_f2_filt.setImage(display_img)
 

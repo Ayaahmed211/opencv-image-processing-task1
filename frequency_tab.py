@@ -25,16 +25,18 @@ class FrequencyTab(QWidget):
         self.btn_load_f1 = QPushButton("Load Image 1")
         self.combo_filter1 = QComboBox()
         self.combo_filter1.addItems(["LPF", "HPF"])
-        self.spin_radius1 = QSpinBox()
-        self.spin_radius1.setRange(1, 1000)
-        self.spin_radius1.setValue(30)
+        
+        # UPDATED: Radius changed to Cutoff (D0)
+        self.spin_d0_1 = QSpinBox()
+        self.spin_d0_1.setRange(1, 1000)
+        self.spin_d0_1.setValue(50)  # Updated default value
         self.btn_apply_f1 = QPushButton("Apply Filter")
         
         ctrl_layout1.addWidget(self.btn_load_f1)
         ctrl_layout1.addWidget(QLabel("Filter:"))
         ctrl_layout1.addWidget(self.combo_filter1)
-        ctrl_layout1.addWidget(QLabel("Radius:"))
-        ctrl_layout1.addWidget(self.spin_radius1)
+        ctrl_layout1.addWidget(QLabel("Cutoff (D0):")) # Updated Label
+        ctrl_layout1.addWidget(self.spin_d0_1)
         ctrl_layout1.addWidget(self.btn_apply_f1)
         
         self.viewer_f1_orig = ImageViewer()
@@ -54,16 +56,18 @@ class FrequencyTab(QWidget):
         self.btn_load_f2 = QPushButton("Load Image 2")
         self.combo_filter2 = QComboBox()
         self.combo_filter2.addItems(["HPF", "LPF"]) # Default to HPF
-        self.spin_radius2 = QSpinBox()
-        self.spin_radius2.setRange(1, 1000)
-        self.spin_radius2.setValue(30)
+        
+        # UPDATED: Radius changed to Cutoff (D0)
+        self.spin_d0_2 = QSpinBox()
+        self.spin_d0_2.setRange(1, 1000)
+        self.spin_d0_2.setValue(50)  # Updated default value
         self.btn_apply_f2 = QPushButton("Apply Filter")
         
         ctrl_layout2.addWidget(self.btn_load_f2)
         ctrl_layout2.addWidget(QLabel("Filter:"))
         ctrl_layout2.addWidget(self.combo_filter2)
-        ctrl_layout2.addWidget(QLabel("Radius:"))
-        ctrl_layout2.addWidget(self.spin_radius2)
+        ctrl_layout2.addWidget(QLabel("Cutoff (D0):")) # Updated Label
+        ctrl_layout2.addWidget(self.spin_d0_2)
         ctrl_layout2.addWidget(self.btn_apply_f2)
         
         self.viewer_f2_orig = ImageViewer()
