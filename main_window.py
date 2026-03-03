@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import QMainWindow, QTabWidget, QFileDialog, QMessageBox
 from image_processor import ImageProcessor
 from histogram_dialog import HistogramDialog
 import frequency_domain
+import numpy as np
 
 # Import the new UI components
 from spatial_tab import SpatialTab
@@ -88,9 +89,8 @@ class MainWindow(QMainWindow):
     def connect_signals(self):
         """Wire all buttons to their respective controller logic."""
         st = self.spatial_tab
-        # Spatial Domain - I/O
-        st.btn_load_color.clicked.connect(self.load_color_image)
-        st.btn_load_gray.clicked.connect(self.load_grayscale_image)
+        # Spatial Domain - I/O (UPDATED to use the single smart load button)
+        st.btn_load_image.clicked.connect(self.load_image)
         st.btn_rgb_to_gray.clicked.connect(self.convert_rgb_to_grayscale)
         st.btn_restore.clicked.connect(self.restore_original)
         st.btn_save_noisy.clicked.connect(self.save_current_image)
@@ -128,33 +128,23 @@ class MainWindow(QMainWindow):
     # Spatial Domain Functions
     # =========================================================================
     
-    def load_color_image(self):
+    def load_image(self):
+        """Smart loader that handles both Color and Grayscale automatically."""
         if not os.path.exists(self.dataset_path):
             return QMessageBox.warning(self, "Warning", f"Folder '{self.dataset_path}' not found!")
+            
         file_path, _ = QFileDialog.getOpenFileName(
-            self, "Select Color Image", self.dataset_path, "Image Files (*.png *.jpg *.jpeg *.bmp)"
+            self, "Select Image", self.dataset_path, "Image Files (*.png *.jpg *.jpeg *.bmp)"
         )
+        
         if file_path:
-            img, success = self.processor.read_image(file_path)
+            img, success = self.processor.load_image(file_path)
             if success:
                 self.spatial_tab.image_viewer.setImage(img)
                 h, w = img.shape[:2]
-                self.spatial_tab.status_label.setText(f"Loaded: {os.path.basename(file_path)} (Color) | Size: {w}x{h}")
-            else:
-                QMessageBox.critical(self, "Error", "Failed to load image!")
-
-    def load_grayscale_image(self):
-        if not os.path.exists(self.dataset_path):
-            return QMessageBox.warning(self, "Warning", f"Folder '{self.dataset_path}' not found!")
-        file_path, _ = QFileDialog.getOpenFileName(
-            self, "Select Grayscale Image", self.dataset_path, "Image Files (*.png *.jpg *.jpeg *.bmp)"
-        )
-        if file_path:
-            img, success = self.processor.read_grayscale(file_path)
-            if success:
-                self.spatial_tab.image_viewer.setImage(img)
-                h, w = img.shape[:2]
-                self.spatial_tab.status_label.setText(f"Loaded: {os.path.basename(file_path)} (Grayscale) | Size: {w}x{h}")
+                # Dynamically update label based on the smart loader's finding
+                mode = "Grayscale" if self.processor.is_gray else "Color"
+                self.spatial_tab.status_label.setText(f"Loaded: {os.path.basename(file_path)} ({mode}) | Size: {w}x{h}")
             else:
                 QMessageBox.critical(self, "Error", "Failed to load image!")
 
@@ -288,7 +278,8 @@ class MainWindow(QMainWindow):
         file_path, _ = QFileDialog.getOpenFileName(self, f"Select Image {img_num}", self.dataset_path, "Image Files (*.png *.jpg *.jpeg *.bmp)")
         if not file_path: return
         
-        img, success = frequency_domain.read_image(file_path)
+        img, success = self.processor.load_frequency_image(file_path)
+        
         if success:
             display_img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
             if img_num == 1:
@@ -301,27 +292,34 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(self, "Error", "Failed to load image!")
 
     def apply_freq_filter(self, img_num):
-        if img_num == 1 and self.freq_img1_orig is None:
-            return QMessageBox.warning(self, "Warning", "Load Image 1 first!")
-        if img_num == 2 and self.freq_img2_orig is None:
-            return QMessageBox.warning(self, "Warning", "Load Image 2 first!")
-            
+        """Applies frequency filter and avoids code repetition."""
+        # 1. Dynamically set variables based on which image is being processed
         if img_num == 1:
+            if self.freq_img1_orig is None:
+                return QMessageBox.warning(self, "Warning", "Load Image 1 first!")
             img = self.freq_img1_orig
             f_type = self.freq_tab.combo_filter1.currentText()
-            # UPDATED: spin_radius1 -> spin_d0_1
-            d0 = self.freq_tab.spin_d0_1.value() 
-            display_img, float_data = frequency_domain.apply_filter(img, f_type, d0)
-            self.freq_img1_float = float_data
-            self.freq_tab.viewer_f1_filt.setImage(display_img)
+            d0 = self.freq_tab.spin_d0_1.value()
+            viewer = self.freq_tab.viewer_f1_filt
         else:
+            if self.freq_img2_orig is None:
+                return QMessageBox.warning(self, "Warning", "Load Image 2 first!")
             img = self.freq_img2_orig
             f_type = self.freq_tab.combo_filter2.currentText()
-            # UPDATED: spin_radius2 -> spin_d0_2
-            d0 = self.freq_tab.spin_d0_2.value() 
-            display_img, float_data = frequency_domain.apply_filter(img, f_type, d0)
+            d0 = self.freq_tab.spin_d0_2.value()
+            viewer = self.freq_tab.viewer_f2_filt
+            
+        # 2. Call the C++ backend exactly once
+        display_img, float_data = frequency_domain.apply_filter(img, f_type, d0)
+        
+        # 3. Save the float data to the correct state variable
+        if img_num == 1:
+            self.freq_img1_float = float_data
+        else:
             self.freq_img2_float = float_data
-            self.freq_tab.viewer_f2_filt.setImage(display_img)
+            
+        # 4. Update the UI
+        viewer.setImage(display_img)
 
     def generate_hybrid_image(self):
         if self.freq_img1_float is None or self.freq_img2_float is None:

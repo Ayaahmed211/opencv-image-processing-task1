@@ -1,27 +1,6 @@
 import cv2
 import numpy as np
 
-def read_image(file_path, max_size=512):
-    """Loads an image, resizes it if it's too large, and ensures it is in grayscale."""
-    img = cv2.imread(file_path)
-    if img is None:
-        return None, False
-        
-    # Shrink large images to fit the screen and make FFT math lightning fast
-    h, w = img.shape[:2]
-    if max(h, w) > max_size:
-        scale = max_size / float(max(h, w))
-        new_w, new_h = int(w * scale), int(h * scale)
-        # INTER_AREA is the best interpolation method for shrinking images down
-        img = cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_AREA)
-
-    if len(img.shape) == 3:
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    else:
-        gray = img
-        
-    return gray, True
-
 def _create_gaussian_mask(rows, cols, D0, filter_type):
     """Helper function to create a vectorized Gaussian filter mask instantly."""
     crow, ccol = rows / 2, cols / 2

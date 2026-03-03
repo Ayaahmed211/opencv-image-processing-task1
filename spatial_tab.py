@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, 
                              QGroupBox, QLabel, QSpinBox, QDoubleSpinBox, 
-                             QComboBox, QSplitter, QScrollArea) # <--- Added QScrollArea
+                             QComboBox, QSplitter, QScrollArea)
 from PyQt5.QtCore import Qt
 from collapsible_box import CollapsibleBox
 from image_viewer import ImageViewer
@@ -25,24 +25,21 @@ class SpatialTab(QWidget):
         
         # ── Scroll Area Setup ─────────────────────────────────────────────
         scroll_area = QScrollArea(self)
-        scroll_area.setWidgetResizable(True) # Very important: allows inner widget to expand
+        scroll_area.setWidgetResizable(True)
         scroll_area.setStyleSheet("QScrollArea { border: none; background-color: transparent; }")
         
         # ── Left panel (Inside the Scroll Area) ───────────────────────────
-        left_panel = QWidget() # Removed self here, scroll_area will take ownership
+        left_panel = QWidget()
         left_layout = QVBoxLayout(left_panel)
         left_layout.setAlignment(Qt.AlignTop)
         
-        # Image Input
+        # ── Image Input ───────────────────────────────────────────────────
         input_group = QGroupBox("Image Input", self)
         input_layout = QVBoxLayout()
         
-        btn_layout = QHBoxLayout()
-        self.btn_load_color = QPushButton("Load Color")
-        self.btn_load_gray = QPushButton("Load Grayscale")
-        btn_layout.addWidget(self.btn_load_color)
-        btn_layout.addWidget(self.btn_load_gray)
-        input_layout.addLayout(btn_layout)
+        # CHANGED: Replaced the two buttons with a single Smart Load button
+        self.btn_load_image = QPushButton("Load Image")
+        input_layout.addWidget(self.btn_load_image)
         
         self.btn_rgb_to_gray = QPushButton("RGB → Grayscale Conversion")
         input_layout.addWidget(self.btn_rgb_to_gray)
@@ -240,7 +237,7 @@ class SpatialTab(QWidget):
         left_layout.addStretch()
         
         # ── Wrap the panel in the scroll area ─────────────────────────────
-        scroll_area.setWidget(left_panel) # <--- Put the populated panel inside the scroll area
+        scroll_area.setWidget(left_panel)
         
         # ── Right panel ───────────────────────────────────────────────────
         right_panel = QWidget(self)
@@ -259,6 +256,6 @@ class SpatialTab(QWidget):
         right_layout.addWidget(self.status_label)
         
         # ── Assemble Splitter ─────────────────────────────────────────────
-        splitter.addWidget(scroll_area) # <--- Add the scroll area instead of left_panel directly
+        splitter.addWidget(scroll_area)
         splitter.addWidget(right_panel)
         splitter.setSizes([400, 1000])
